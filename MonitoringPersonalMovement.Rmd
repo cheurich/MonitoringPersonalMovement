@@ -4,9 +4,9 @@ subtitle: "Reproductible Research Project1 - Data Science Specialization"
 author: "cheu"
 date: "10 12 2021"
 output:
-  html_document: default
-  pdf_document: default
   md_document: default
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
