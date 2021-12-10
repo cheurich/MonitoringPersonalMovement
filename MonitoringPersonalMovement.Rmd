@@ -95,7 +95,8 @@ ggplot(totaldaysteps, aes(x = totaldaysteps)) +                           # Draw
        caption = 'Datasource: publicly available data')+
   scale_color_manual(
         name = "statistics", 
-        values = c(mean = "red", median = "green"))
+        values = c(mean = "red", median = "green"))+
+  theme_minimal()
 ```
 
 ### 2.3. Calculate and report the mean and median of the total number of steps taken per day

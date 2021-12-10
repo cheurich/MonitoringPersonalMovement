@@ -114,7 +114,8 @@ Histogram of the total daysteps:
            caption = 'Datasource: publicly available data')+
       scale_color_manual(
             name = "statistics", 
-            values = c(mean = "red", median = "green"))
+            values = c(mean = "red", median = "green"))+
+      theme_minimal()
 
 ![](MonitoringPersonalMovement_files/figure-markdown_strict/hist_sumdaysteps-1.png)
 
@@ -693,4 +694,3 @@ type of the weekday:
 
 All of the R code needed to reproduce the results (numbers, plots, etc.)
 in the report must be submitted.
-
