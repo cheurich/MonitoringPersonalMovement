@@ -1,0 +1,328 @@
+---
+title: "Monitoring Personal Movement"
+subtitle: "Reproductible Research Project1 - Data Science Specialization"
+author: "cheu"
+date: "10 12 2021"
+output:
+  html_document: default
+  pdf_document: default
+  md_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache=TRUE, message = FALSE, warning = FALSE)
+```
+
+## 1. Loading and preprocessing the data
+
+Show any code that is needed to
+
+### 1.1. Load the data (i.e. read.csv())
+
+Unzip the data:
+```{r unzip}
+#url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+#download.file(url, dest="activity.zip", mode="wb") 
+unzip ("activity.zip", exdir = "./activity")
+```
+
+Read the data:
+```{r read_csv}
+activity <- read.csv("./activity/activity.csv")
+```
+
+Show the first 6 rows:
+```{r showhead}
+head(activity)
+```
+
+### 1.2. Process/transform the data (if necessary) into a format suitable for your analysis
+
+Generate time column from interval column:
+```{r formatIntervalToTime}
+temp <- activity$interval
+temp <- sprintf("%04d", temp)
+interval_time <- format(strptime(temp, format="%H%M"), format = "%H:%M")
+head(interval_time)
+```
+Add time column to dataframe:
+```{r time}
+library(dplyr)
+activity_df <- mutate(activity, time=interval_time)
+head(activity_df)
+```
+
+Add date and time together to a datetime column:
+```{r datetime}
+#library(lubridate)
+activity_df <- mutate(activity_df, datetime=as.POSIXct(as.character(paste(activity_df$date, activity_df$time))))
+head(activity_df)
+class(activity_df$datetime)
+```
+## 2. What is mean total number of steps taken per day?
+
+For this part of the assignment, you can ignore the missing values in the dataset.
+
+### 2.1. Calculate the total number of steps taken per day
+
+Calculate the total daysteps:
+```{r totaldaysteps}
+totaldaysteps <- aggregate(x = activity_df$steps,
+                by = list(activity_df$date),
+                FUN = sum, na.rm = F)
+names(totaldaysteps)[names(totaldaysteps) == "Group.1"] <- "date"
+names(totaldaysteps)[names(totaldaysteps) == "x"] <- "totaldaysteps"
+head(totaldaysteps)
+```
+
+### 2.2. Make a histogram of the total number of steps taken each day
+
+If you do not understand the difference between a histogram and a barplot, research the difference between them. 
+
+Histogram of the total daysteps:
+```{r hist_sumdaysteps}
+library("ggplot2")
+ggplot(totaldaysteps, aes(x = totaldaysteps)) +                           # Draw density above histogram
+  geom_histogram(aes(y = ..density..),bins=22) +
+  geom_density(alpha = 0.1, fill = "red") + 
+  geom_rug() +         # Draw Frequency below x axis
+  geom_vline(aes(xintercept=mean(totaldaysteps, na.rm = T),
+             color="mean"), linetype="solid", size=1) +
+  geom_vline(aes(xintercept=median(totaldaysteps, na.rm = T),
+             color="median"), linetype="dashed", size=1)+
+  labs(x = 'Steps', y = 'Frequency',
+       title = 'Total Daysteps',
+       caption = 'Datasource: publicly available data')+
+  scale_color_manual(
+        name = "statistics", 
+        values = c(mean = "red", median = "green"))
+```
+
+### 2.3. Calculate and report the mean and median of the total number of steps taken per day
+
+Calculate and print the mean and median:
+```{r mean_median,  results="hide"}
+mn <- mean(totaldaysteps$totaldaysteps, na.rm=T)
+md <- median(totaldaysteps$totaldaysteps, na.rm=T)
+print(paste("The mean is: ", round(mn,0), " steps."))
+print(paste("The median is: ", md, " steps."))
+```
+
+Show the summary table:
+```{r showtable_stats, results="asis"}
+library(xtable)
+xt <- xtable(summary(totaldaysteps))
+print(xt, type="html")
+#print(xt, type="latex")
+```
+
+## 3. What is the average daily activity pattern?
+
+### 3.1. Make a time series plot 
+
+Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+
+Calculate the average daysteps:
+```{r avgdaysteps}
+avgdaysteps <- aggregate(x = activity_df$steps,
+                by = list( activity_df$interval),
+                FUN = mean, na.rm = T)
+names(avgdaysteps)[names(avgdaysteps) == "Group.1"] <- "interval"
+names(avgdaysteps)[names(avgdaysteps) == "x"] <- "avgdaysteps"
+head(avgdaysteps)
+```
+
+Time series plot: Average number of steps on 5-minute interval
+```{r avg_steps_5min}
+ggplot(data = avgdaysteps, aes(x = interval, y = avgdaysteps)) +
+geom_line(color = "#FC4E07", size = 0.5)+
+#geom_rug()+
+labs(x = 'Interval', y = 'Average Daysteps',
+       title = 'Average steps per day on 5-minutes interval',
+       caption = 'Datasource: publicly available data')+
+theme_minimal()
+```
+
+
+### 3.2. The 5-minute interval containing the maximum number of steps
+
+Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+```{r max_avgsteps5min}
+#install.packages("dplyr")
+#library("dplyr")
+subset(avgdaysteps,avgdaysteps==max(avgdaysteps))
+```
+
+## 4. Imputing missing values
+
+Note that there are a number of days/intervals where there are missing values (coded as NA). The presence of missing days may introduce bias into some calculations or summaries of the data.
+
+### 4.1. Calculate and report the total number of NAs
+
+Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+
+```{r sum_allna}
+print("The total number of missing values in the dataset (in the steps column) is: ")
+sum(is.na(activity_df))
+```
+
+```{r xt_activity_df, results="asis"}
+#library(xtable)
+xt_activity_df <- xtable(summary(activity_df[1]))
+print(xt_activity_df, type="html")
+#print(xt_activity_df, type="latex")
+```
+
+### 4.2. Filling in all of the missing values in the dataset
+
+Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
+
+Calculate steps mean for each 5-minutes interval:
+```{r intervalmean}
+intervalmean <- aggregate(x = activity_df$steps,
+                by = list(activity_df$interval),
+                FUN = mean, na.rm=T)
+names(intervalmean)[names(intervalmean) == "Group.1"] <- "interval"
+names(intervalmean)[names(intervalmean) == "x"] <- "steps_intervalmean"
+head(intervalmean)
+#intervalmean
+```
+
+Calculate steps mean for each date:
+```{r datemean}
+datemean <- aggregate(x = activity_df$steps,
+                by = list(activity_df$date),
+                FUN = mean, na.rm=T)
+names(datemean)[names(datemean) == "Group.1"] <- "date"
+names(datemean)[names(datemean) == "x"] <- "steps_datemean"
+head(datemean)
+```
+
+### 4.3. Create a new dataset with the filled in data
+
+Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+Join the interval and date mean columns together with the original dataframe:
+```{r interval_date_means}
+library(dplyr)
+df <- merge(x=activity_df,y=intervalmean,by="interval")
+df <- merge(x=df,y=datemean,by="date")
+head(df)
+```
+
+Fill in the NAs in step column with the interval means:
+```{r fill_allnas_intervalmean}
+df_na_intervalmean <- df
+df_na_intervalmean <- mutate(df_na_intervalmean, steps = ifelse(is.na(df$steps), df$steps_intervalmean, df$steps))
+df_na_intervalmean <- mutate(df_na_intervalmean, steps_datemean = ifelse(is.na(df_na_intervalmean$steps_datemean), mean(df_na_intervalmean$steps_datemean, na.rm = T), df_na_intervalmean$steps_datemean))
+head(df_na_intervalmean)
+```
+
+
+### 4.4. Make a histogram of the total number of steps and report the mean and median
+
+Make a histogram of the total number of steps taken each day and calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+Calculate the total daysteps, Nas replaced with intervalmean:
+```{r totaldaysteps_na_intervalmean}
+totaldaysteps_na_intervalmean <- aggregate(x = df_na_intervalmean$steps,
+                by = list(df_na_intervalmean$date),
+                FUN = sum)
+names(totaldaysteps_na_intervalmean)[names(totaldaysteps_na_intervalmean) == "Group.1"] <- "date"
+names(totaldaysteps_na_intervalmean)[names(totaldaysteps_na_intervalmean) == "x"] <- "totaldaysteps_na_intervalmean"
+head(totaldaysteps_na_intervalmean)
+```
+
+
+Histogramm of totaldaysteps, NAs replaced with intervalmean:
+```{r hist_totaldaysteps_na_intervalmean}
+library("ggplot2")
+ggplot(totaldaysteps_na_intervalmean, aes(x = totaldaysteps_na_intervalmean)) +                           # Draw density above histogram
+  geom_histogram(aes(y = ..density..), bins = 22) +
+  geom_density(alpha = 0.1, fill = "red") + 
+  geom_rug() +         # Draw Frequency below x axis
+  geom_vline(aes(xintercept=mean(totaldaysteps_na_intervalmean),
+             color="mean"), linetype="solid", size=1) +
+  geom_vline(aes(xintercept=median(totaldaysteps_na_intervalmean),
+             color="median"), linetype="dashed", size=1)+
+  labs(x = 'Steps', y = 'Frequency',
+       title = 'Total Daysteps, NAs replaced with intervalmean',
+       caption = 'Datasource: publicly available data')+
+  scale_color_manual(
+        name = "statistics", 
+        values = c(mean = "red", median = "green"))
+```
+
+Report the mean and median total number of steps taken per day:
+
+Calculate and print the mean and median:
+```{r mean_median_na,  results="hide"}
+mn <- mean(totaldaysteps$totaldaysteps, na.rm=T)
+md <- median(totaldaysteps$totaldaysteps, na.rm=T)
+mn_na_intervalmean <- mean(totaldaysteps_na_intervalmean$totaldaysteps_na_intervalmean, na.rm=T)
+md_na_intervalmean <- median(totaldaysteps_na_intervalmean$totaldaysteps_na_intervalmean, na.rm=T)
+print(paste("The mean is: ", round(mn,2), " steps."))
+print(paste("The mean (NAs replaced by intervalmean) is: ", round(mn_na_intervalmean,2), " steps."))
+print(paste("The median is: ", round(md,2), " steps."))
+print(paste("The median (NAs replaced by intervalmean) is: ", round(md_na_intervalmean,2), " steps."))
+```
+Show the summary table:
+```{r showtable_stats_na, results="asis"}
+library(xtable)
+xt_na <- xtable(summary(totaldaysteps_na_intervalmean))
+print(xt_na, type="html")
+#print(xt_na, type="latex")
+```
+
+## 5. Are there differences in activity patterns between weekdays and weekends?
+
+For this part the weekdays() function may be of some help here. Use the dataset with the filled-in missing values for this part.
+
+### 5.1. Create “weekday” and “weekend” of the date
+
+Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+
+Create weekdays from date and than the factor variable with the two levels – “weekday” and “weekend”:
+```{r weekday_weekend}
+df_na_intervalmean <- mutate(df_na_intervalmean, date = as.POSIXct(date))
+df_na_intervalmean <- mutate(df_na_intervalmean, weekdays = weekdays(date))
+df_na_intervalmean[grepl(pattern = "Montag|Dienstag|Mittwoch|Donnerstag|Freitag", x =df_na_intervalmean$weekdays), "weekday_weekend"] <- "weekday"
+df_na_intervalmean[grepl(pattern = "Samstag|Sontag", x =df_na_intervalmean$weekdays), "weekday_weekend"] <- "weekend"
+df_na_intervalmean$weekday_weekend <- as.factor(df_na_intervalmean$weekday_weekend)
+#class(df_na_intervalmean$weekday_weekend)
+head(df_na_intervalmean, 10)
+```
+### 5.2. Make a panel plot time series of the 5-minute interval and the average number of steps
+
+Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
+
+Calculate the average daysteps:
+```{r avgdaysteps_na}
+avgdaysteps_na_intervalmean <- aggregate(x = df_na_intervalmean$steps,
+                by = list( df_na_intervalmean$interval, df_na_intervalmean$weekday_weekend),
+                FUN = mean, na.rm = T)
+names(avgdaysteps_na_intervalmean)[names(avgdaysteps_na_intervalmean) == "Group.1"] <- "interval"
+names(avgdaysteps_na_intervalmean)[names(avgdaysteps_na_intervalmean) == "Group.2"] <- "weekday_weekend"
+names(avgdaysteps_na_intervalmean)[names(avgdaysteps_na_intervalmean) == "x"] <- "avgdaysteps_na_intervalmean"
+head(avgdaysteps_na_intervalmean)
+```
+
+Panal of time series plots: Average daysteps on 5-minutes interval by type of the weekday:
+```{r avg_steps_5min_weekdaytype}
+ggplot(avgdaysteps_na_intervalmean, aes(x=interval, y=avgdaysteps_na_intervalmean, color=weekday_weekend)) + 
+geom_line(size = 1) + 
+facet_wrap(~weekday_weekend,  ncol = 1, nrow=2) +
+labs(title = 'Average daysteps on 5-minutes interval',
+     subtitle="by type of the weekday",
+       x = "Interval",
+       y = "Average daysteps",
+     color="Type of the weekday:",
+       caption = 'Datasource: publicly available data')+
+theme_minimal()
+```
+
+
+## 6. Commit containing full submission
+
+All of the R code needed to reproduce the results (numbers, plots, etc.) in the report must be submitted. 
