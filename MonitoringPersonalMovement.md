@@ -500,7 +500,8 @@ Histogramm of totaldaysteps, NAs replaced with intervalmean:
            caption = 'Datasource: publicly available data')+
       scale_color_manual(
             name = "statistics", 
-            values = c(mean = "red", median = "green"))
+            values = c(mean = "red", median = "green"))+
+      theme_minimal()
 
 ![](MonitoringPersonalMovement_files/figure-markdown_strict/hist_totaldaysteps_na_intervalmean-1.png)
 

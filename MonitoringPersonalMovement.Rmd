@@ -4,8 +4,8 @@ subtitle: "Reproductible Research Project1 - Data Science Specialization"
 author: "cheu"
 date: "10 12 2021"
 output:
-  md_document: default
   pdf_document: default
+  md_document: default
   html_document: default
 ---
 
@@ -252,7 +252,8 @@ ggplot(totaldaysteps_na_intervalmean, aes(x = totaldaysteps_na_intervalmean)) + 
        caption = 'Datasource: publicly available data')+
   scale_color_manual(
         name = "statistics", 
-        values = c(mean = "red", median = "green"))
+        values = c(mean = "red", median = "green"))+
+  theme_minimal()
 ```
 
 Report the mean and median total number of steps taken per day:
