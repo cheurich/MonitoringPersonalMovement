@@ -4,9 +4,9 @@ subtitle: "Reproductible Research Project1 - Data Science Specialization"
 author: "cheu"
 date: "10 12 2021"
 output:
-  pdf_document: default
-  md_document: default
   html_document: default
+  md_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -312,8 +312,8 @@ head(avgdaysteps_na_intervalmean)
 
 Panal of time series plots: Average daysteps on 5-minutes interval by type of the weekday:
 ```{r avg_steps_5min_weekdaytype}
-ggplot(avgdaysteps_na_intervalmean, aes(x=interval, y=avgdaysteps_na_intervalmean, color=weekday_weekend)) + 
-geom_line(size = 1) + 
+ggplot(avgdaysteps_na_intervalmean, aes(x=interval, y=avgdaysteps_na_intervalmean, color=weekday_weekend)) +
+geom_line() + 
 facet_wrap(~weekday_weekend,  ncol = 1, nrow=2) +
 labs(title = 'Average daysteps on 5-minutes interval',
      subtitle="by type of the weekday",
